@@ -1,26 +1,43 @@
 #!/usr/bin/env python
 
 import numpy as np
+import sys
+sys.path.append('../../')
 
-from sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
 import copy
 from gym import spaces
 
-import sys
+from spot_bullet.src.sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
 
-sys.path.append('../../')
 
 from spotmicro.GymEnvs.spot_bezier_env import spotBezierEnv
 from spotmicro.Kinematics.SpotKinematics import SpotModel
 from spotmicro.GaitGenerator.Bezier import BezierGait
-
-# TESTING
+from spotmicro.spot_env_randomizer import SpotEnvRandomizer
 from spotmicro.OpenLoopSM.SpotOL import BezierStepper
 
 import time
 
 import torch
 import os
+import argparse
+
+descr = "Spot Mini Mini ARS Agent Trainer."
+parser = argparse.ArgumentParser(description=descr)
+parser.add_argument("-hf",
+                    "--HeightField",
+                    help="Use HeightField",
+                    action='store_true')
+parser.add_argument("-yc",
+                    "--YesContactSensing",
+                    help="Disable Contact Sensing",
+                    action='store_true')
+parser.add_argument("-dr",
+                    "--DontRandomize",
+                    help="Do NOT Randomize State and Environment.",
+                    action='store_true')
+parser.add_argument("-s", "--Seed", help="Seed (Default: 0).")
+ARGS = parser.parse_args()
 
 
 def main():
@@ -36,10 +53,31 @@ def main():
     save_model = True
     file_name = "spot_sac_"
 
+    # setting arg pars settings:
+    if ARGS.HeightField:
+        height_field = True
+    else:
+        height_field = False
+
+    if ARGS.YesContactSensing:
+        contacts = True
+    else:
+        contacts = False
+
+    if ARGS.DontRandomize:
+        env_randomizer = None
+        rand_name = "norand_"
+    else:
+        env_randomizer = SpotEnvRandomizer()
+        rand_name = "rand_"
+
     # Find abs path to this file
     my_path = os.path.abspath(os.path.dirname(__file__))
     results_path = os.path.join(my_path, "../results")
-    models_path = os.path.join(my_path, "../models")
+    if contacts:
+        models_path = os.path.join(my_path, "../models/contact")
+    else:
+        models_path = os.path.join(my_path, "../models/no_contact")
 
     if not os.path.exists(results_path):
         os.makedirs(results_path)
@@ -47,10 +85,13 @@ def main():
     if not os.path.exists(models_path):
         os.makedirs(models_path)
 
+
     env = spotBezierEnv(render=False,
                         on_rack=False,
-                        height_field=False,
-                        draw_foot_path=False)
+                        height_field=height_field,
+                        draw_foot_path=False,
+                        contacts=contacts,
+                        env_randomizer=env_randomizer)
     env = NormalizedActions(env)
 
     # Set seeds
@@ -209,14 +250,15 @@ def main():
             episode_timesteps = 0
             episode_num += 1
 
+ 
         # Evaluate episode
         if (t + 1) % eval_freq == 0:
             # evaluate_policy(policy, env_name, seed,
             np.save(results_path + "/" + str(file_name), evaluations)
             if save_model:
-                sac.save(models_path + "/" + str(file_name) + str(t))
+                sac.save(models_path + "/" + str(file_name) +
+                           str(episode_num))
                 # replay_buffer.save(t)
-
     env.close()
 
 
