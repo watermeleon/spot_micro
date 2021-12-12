@@ -28,10 +28,6 @@ parser.add_argument("-hf",
                     "--HeightField",
                     help="Use HeightField",
                     action='store_true')
-parser.add_argument("-yc",
-                    "--YesContactSensing",
-                    help="Disable Contact Sensing",
-                    action='store_true')
 parser.add_argument("-dr",
                     "--DontRandomize",
                     help="Do NOT Randomize State and Environment.",
@@ -59,10 +55,6 @@ def main():
     else:
         height_field = False
 
-    if ARGS.YesContactSensing:
-        contacts = True
-    else:
-        contacts = False
 
     if ARGS.DontRandomize:
         env_randomizer = None
@@ -74,11 +66,9 @@ def main():
     # Find abs path to this file
     my_path = os.path.abspath(os.path.dirname(__file__))
     results_path = os.path.join(my_path, "../results")
-    if contacts:
-        models_path = os.path.join(my_path, "../models/contact")
-    else:
-        models_path = os.path.join(my_path, "../models/no_contact")
 
+    models_path = os.path.join(my_path, "../models")
+ 
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
@@ -90,7 +80,6 @@ def main():
                         on_rack=False,
                         height_field=height_field,
                         draw_foot_path=False,
-                        contacts=contacts,
                         env_randomizer=env_randomizer)
     env = NormalizedActions(env)
 
