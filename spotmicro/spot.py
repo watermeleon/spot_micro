@@ -651,15 +651,17 @@ class Spot(object):
         observation.extend(list(ang_twist))
         observation.extend(list(lin_acc))
         # Control Input
-        observation.append(self.StepLength)
+        # observation.append(self.StepLength)
         # observation.append(self.StepVelocity)
         # observation.append(self.LateralFraction)
         # observation.append(self.YawRate)
         observation.extend(self.LegPhases)
-        observation.append(FLC)
-        observation.append(FRC)
-        observation.append(BLC)
-        observation.append(BRC)
+
+        # commented by yours truly: watermeleon
+        # observation.append(FLC)
+        # observation.append(FRC)
+        # observation.append(BLC)
+        # observation.append(BRC)
         # print("CONTACTS: {}  {}  {}  {}".format(FLC, FRC, BLC, BRC))
         return observation
 
