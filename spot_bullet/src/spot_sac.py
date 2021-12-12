@@ -45,7 +45,7 @@ def main():
     seed = 0
     max_timesteps = 4e6
     batch_size = 256
-    eval_freq = 1e4
+    eval_freq = 1e1
     save_model = True
     file_name = "spot_sac_"
 
@@ -108,6 +108,7 @@ def main():
                           replay_buffer=replay_buffer)
 
     policy_num = 0
+    # TODO: change so this can actually load model: implement policy number.
     if os.path.exists(models_path + "/" + file_name + str(policy_num) +
                       "_critic"):
         print("Loading Existing Policy")

@@ -651,7 +651,7 @@ class Spot(object):
         observation.extend(list(ang_twist))
         observation.extend(list(lin_acc))
         # Control Input
-        # observation.append(self.StepLength)
+        observation.append(self.StepLength)
         # observation.append(self.StepVelocity)
         # observation.append(self.LateralFraction)
         # observation.append(self.YawRate)
