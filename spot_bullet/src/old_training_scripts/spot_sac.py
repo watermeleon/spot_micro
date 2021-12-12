@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-
+import sys
 import numpy as np
 
-from sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
+sys.path.append('../../')
+# from sac_lib.SoftActorCritic import SoftActorCritic
+from spot_bullet.src.sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
 import copy
 from gym import spaces
 
 import sys
 
-sys.path.append('../../')
+sys.path.append('../')
 
 from spotmicro.GymEnvs.spot_bezier_env import spotBezierEnv
 from spotmicro.Kinematics.SpotKinematics import SpotModel

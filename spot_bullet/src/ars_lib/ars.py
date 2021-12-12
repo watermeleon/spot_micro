@@ -400,7 +400,6 @@ class ARSAgent():
                 action[a] = np.clip(action[a], -self.max_action,
                                     self.max_action)
             # print("ACTION: ", action)
-            print("leon1, thought so")
             state, reward, done, _ = self.env.step(action)
             # print("STATE: ", state)
             # Clip reward between -1 and 1 to prevent outliers from
@@ -523,7 +522,6 @@ class ARSAgent():
             # Pass Joint Angles
             self.env.pass_joint_angles(joint_angles.reshape(-1))
 
-            print("leon2")
             # Perform action
             next_state, reward, done, _ = self.env.step(action)
             sum_rewards += reward
