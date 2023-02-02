@@ -1,0 +1,23 @@
+/home/leshuijs/spotmicro_mini4/src/spot_bullet/src/../../spotmicro/util/pybullet_data
+Namespace(DontRandomize=False, HeightField=True, NoContactSensing=True, Seed=None, num_epochs=100)
+STARTING SPOT TRAINING ENV
+SEED: 0
+[9, 13, 18, 22]
+TERRAIN SHAPE: 0
+TERRAIN SHAPE: 1
+Action SPACE: Box(-1.0, 1.0, (14,), float32)
+STATE DIM: 12
+ACTION DIM: 14
+STARTED SPOT TRAINING ENV
+Total T: 866 Episode Num: 0 Episode T: 865 Reward: -1055.99 REWARD PER STEP: -1.22
+Total T: 3897 Episode Num: 1 Episode T: 3031 Reward: -380.52 REWARD PER STEP: -0.13
+Total T: 4179 Episode Num: 2 Episode T: 282 Reward: -790.12 REWARD PER STEP: -2.80
+Total T: 4422 Episode Num: 3 Episode T: 243 Reward: -858.22 REWARD PER STEP: -3.53
+Total T: 5776 Episode Num: 4 Episode T: 1354 Reward: -4013.42 REWARD PER STEP: -2.96
+Total T: 6643 Episode Num: 5 Episode T: 867 Reward: -1991.36 REWARD PER STEP: -2.30
+Total T: 7433 Episode Num: 6 Episode T: 790 Reward: -1620.86 REWARD PER STEP: -2.05
+Total T: 8166 Episode Num: 7 Episode T: 733 Reward: -2109.68 REWARD PER STEP: -2.88
+Total T: 8970 Episode Num: 8 Episode T: 804 Reward: -2529.75 REWARD PER STEP: -3.15
+Total T: 10085 Episode Num: 9 Episode T: 1115 Reward: -2589.83 REWARD PER STEP: -2.32
+Total T: 11371 Episode Num: 10 Episode T: 1286 Reward: -3327.75 REWARD PER STEP: -2.59
+pybullet build time: Apr 17 2022 13:15:00

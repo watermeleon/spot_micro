@@ -67,9 +67,7 @@ add_message_files(
   JoyButtons.msg
   IMUdata.msg
   ContactData.msg
-  AgentData.msg
-  JointAngles.msg
-  JointPulse.msg
+  BezierData.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -196,6 +194,7 @@ ${catkin_LIBRARIES}
 install(PROGRAMS
   src/spot_pybullet_interface
   src/spot_real_interface
+  src/spot_real_legs
   src/servo_calibration
   src/sensor_interface
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

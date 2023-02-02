@@ -19,4 +19,4 @@ class NormalizedActions(gym.ActionWrapper):
         action = 2 * (action - low_bound) / (upper_bound - low_bound) - 1
         action = np.clip(action, low_bound, upper_bound)
 
-        return actions
+        return action

@@ -8,8 +8,10 @@ class ReplayBuffer:
         self.position = 0
 
     def push(self, state, action, reward, next_state, done):
+        # the buffer does overwrite, because only new entries are added if the follow statment holds
         if len(self.buffer) < self.capacity:
             self.buffer.append(None)
+        # here buffer is always overwritten, but if less then capac, None is overwritten.
         self.buffer[self.position] = (state, action, reward, next_state, done)
         self.position = (self.position + 1) % self.capacity
 

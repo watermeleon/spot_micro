@@ -179,7 +179,7 @@ def main():
         # for i, (key, Tbf_in) in enumerate(T_bf.items()):
         #     print("{}: \t Angle: {}".format(key, np.degrees(joint_angles[i])))
         # print("-------------------------")
-
+        print(" joint angles", joint_angles)
         env.pass_joint_angles(joint_angles.reshape(-1))
         # Get External Observations
         env.spot.GetExternalObservations(bzg, bz_step)

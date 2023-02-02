@@ -8,7 +8,7 @@
   <node respawn="true" pkg="joy"
         type="joy_node" name="spot_joy" >
     <param name="dev" type="string" value="/dev/input/js0" />
-    <param name="deadzone" value="0.05" />
+    <param name="deadzone" value="0.005" />
   </node>
 
  <!-- Teleop Node -->
@@ -24,8 +24,22 @@
   <param name="button_estop" value="1" type="int"/>
 </node>
 
+<arg name="agent_num" default="109" doc="Agent Number for ARS (GMBC) Policy. Default (0) Loads no Agent. Policy numbers start at 9 and increase by 10. E.G: 9...19...29..."/> 
+<param name="agent_num" value="$(eval arg('agent_num'))" />
+
+<!-- Spot Params -->
+<rosparam command="load" file="$(find mini_ros)/config/spot_params.yaml" />
+
+<!-- Policy Params -->
+<rosparam command="load" file="$(find mini_ros)/config/policy_params.yaml" />
+
+<!-- Joystick Params -->
+<rosparam command="load" file="$(find mini_ros)/config/joy_params.yaml" />
+
+
 <!-- Policy Node -->
-<node name="spot_pybullet" pkg="mini_ros" type="spot_pybullet_interface" output="screen"/>
+<node name="spot_pybullet" pkg="mini_ros" type="spot_pybullet_new_interface" output="screen"/>
+
 
 
 <!-- NOTE:

@@ -79,7 +79,7 @@ class spotGymEnv(gym.Env):
                  rotation_weight=1.0,
                  energy_weight=0.0005,
                  shake_weight=0.005,
-                 drift_weight=2.0,
+                 drift_weight=0.0,
                  rp_weight=0.1,
                  rate_weight=0.1,
                  urdf_root=pybullet_data.getDataPath(),
@@ -303,6 +303,8 @@ class spotGymEnv(gym.Env):
               reset_duration=1.0,
               desired_velocity=None,
               desired_rate=None):
+        self.prev_pos = np.array([0.0, 0.0, 0.0])
+        
         # Use Autostepper
         if self.AutoStepper:
             self.StateMachine = BezierStepper(dt=self._time_step)

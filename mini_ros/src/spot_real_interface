@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 DESCRIPTION:
 
@@ -13,6 +13,9 @@ import copy
 import sys
 import os
 import rospkg
+import time
+import torch
+
 rospack = rospkg.RosPack()
 
 sys.path.append(rospack.get_path('mini_ros') + '/../')
@@ -22,6 +25,8 @@ sys.path.append('../../')
 from spotmicro.Kinematics.SpotKinematics import SpotModel
 from spotmicro.GaitGenerator.Bezier import BezierGait
 from spot_bullet.src.ars_lib.ars import ARSAgent, Normalizer, Policy
+from spot_bullet.src.sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
+
 from spotmicro.GymEnvs.spot_bezier_env import spotBezierEnv
 
 # Initialize Node
@@ -46,9 +51,19 @@ alpha = rospy.get_param("alpha")
 # -1 for all
 actions_to_filter = rospy.get_param("actions_to_filter")
 
+mini_cmd_straight = MiniCmd()
+mini_cmd_straight.x_velocity = 1.0 * 0.2
+mini_cmd_straight.y_velocity = 0.0
+mini_cmd_straight.rate = 0.0
+mini_cmd_straight.roll = 0.0
+mini_cmd_straight.pitch = 0.0
+mini_cmd_straight.yaw = 0.0
+mini_cmd_straight.z = 0.0
+mini_cmd_straight.motion = "Go"
+mini_cmd_straight.movement = "Stepping"
 
 class SpotCommander():
-    def __init__(self, Agent=True, contacts=False):
+    def __init__(self, Agent="SAC", contacts=False):
 
         self.Agent = Agent
         self.agent_num = rospy.get_param("agent_num")
@@ -64,6 +79,9 @@ class SpotCommander():
         self.mini_cmd.z = 0.0
         self.mini_cmd.motion = "Stop"
         self.mini_cmd.movement = "Stepping"
+        self.walkstraight = False
+        self.datacount = 0
+
         # FIXED
         self.BaseStepVelocity = rospy.get_param("BaseStepVelocity")
         self.StepVelocity = copy.deepcopy(self.BaseStepVelocity)
@@ -110,9 +128,13 @@ class SpotCommander():
         self.bzg = BezierGait(dt=rospy.get_param("dt"),
                               Tswing=rospy.get_param("Tswing"))
 
-        if self.Agent:
-            self.load_spot(contacts, agent_num=self.agent_num)
-        # cmd_cb from mini_cmd topic
+        if self.Agent == "ARS":
+            self.load_spot_ars(contacts, agent_num=self.agent_num)
+        elif self.Agent == "SAC":
+                self.load_spot_sac(contacts, agent_num=self.agent_num)
+
+        print("does agent exist?", self.Agent)
+
         self.sub_cmd = rospy.Subscriber('mini_cmd',
                                         MiniCmd,
                                         self.cmd_cb,
@@ -131,9 +153,9 @@ class SpotCommander():
                                         queue_size=1)
         self.ag_pub = rospy.Publisher('spot/agent', AgentData, queue_size=1)
         self.ja_pub = rospy.Publisher('spot/joints', JointAngles, queue_size=1)
-        print("READY TO GO!")
+        print("Commander ready!")
 
-    def load_spot(self, contacts, state_dim=12, action_dim=14, agent_num=0):
+    def load_spot_ars(self, contacts, state_dim=12, action_dim=14, agent_num=0):
         self.policy = Policy(state_dim=state_dim, action_dim=action_dim)
         self.normalizer = Normalizer(state_dim=state_dim)
         env = spotBezierEnv(render=False,
@@ -144,13 +166,16 @@ class SpotCommander():
         my_path = os.path.abspath(os.path.dirname(__file__))
         if contacts:
             models_path = os.path.join(my_path,
-                                       "../../spot_bullet/models/contact")
+                                       "../../spot_bullet/models/contact/ARS")
         else:
             models_path = os.path.join(my_path,
-                                       "../../spot_bullet/models/no_contact")
+                                       "../../spot_bullet/models/no_contact/ARS")
 
         print("MODEL PATH: {}".format(my_path))
-        file_name = "spot_ars_"
+        file_name = "spot_ars_yellow_final_buff200k_dynamOnly_seed0_"
+        agent_num = 949
+        print("real model path:", models_path + "/" + file_name + str(agent_num) +"_policy")
+
         if os.path.exists(models_path + "/" + file_name + str(agent_num) +
                           "_policy"):
             print("Loading Existing agent: {}".format(agent_num))
@@ -161,18 +186,65 @@ class SpotCommander():
         self.action = np.zeros(action_dim)
         self.old_act = self.action[:actions_to_filter]
 
+    def load_spot_sac(self, contacts, state_dim=12, action_dim=14, hidden_dim=256, agent_num=0):
+            self.policy = PolicyNetwork(state_dim, action_dim, hidden_dim, episode_steps = 2000)
+            self.policy.eval()
+            replay_buffer = ReplayBuffer(10)
+            self.agent = SoftActorCritic(policy=self.policy,
+                                state_dim=state_dim,
+                                action_dim=action_dim,
+                                replay_buffer=replay_buffer,
+                                hidden_dim = hidden_dim)
+
+            self.agent.target_soft_q_net.eval()
+            self.agent.soft_q_net.eval()
+
+            self.normalizer = Normalizer(state_dim=state_dim)
+            env = spotBezierEnv(render=False,
+                                on_rack=False,
+                                height_field=False,
+                                draw_foot_path=False)
+            my_path = os.path.abspath(os.path.dirname(__file__))
+            if contacts:
+                models_path = os.path.join(my_path,
+                                        "../../spot_bullet/models/contact/SAC")
+            else:
+                models_path = os.path.join(my_path,
+                                        "../../spot_bullet/models/no_contact/SAC")
+
+            print("MODEL PATH: {}".format(my_path))
+ 
+            file_name = "spot_sac_yellow_buff1mildoubleQ_h256_lr1e-5_dynamOnly_seed1_"
+            agent_num = 289
+            agent_path =  models_path + "/" + file_name + str(agent_num)
+            print("real model path:",agent_path +"_policy_net")
+
+            if os.path.exists(agent_path + "_policy_net"):
+                print("Loading Existing agent: {}".format(agent_num))
+                self.agent.load(agent_path)
+
+                self.agent.policy_net.episode_steps = np.inf
+                self.policy = self.agent.policy_net
+
+            self.action = np.zeros(action_dim)
+            self.old_act = self.action[:actions_to_filter]
+
     def imu_cb(self, imu):
         """ Reads the IMU
 
             Args: imu
         """
+        scale_roll = scale_pitch = 1.0
+        scale_gyroz =  scale_gyrox = scale_gyroy = 0.5
+        scale_accx = scale_accy = scale_accz = 0.1
+        
         try:
             # Update imu
             self.imu = [
-                imu.roll, imu.pitch,
-                np.radians(imu.gyro_x),
-                np.radians(imu.gyro_y),
-                np.radians(imu.gyro_z), imu.acc_x, imu.acc_y, imu.acc_z - 9.81
+                imu.roll*scale_roll, imu.pitch* scale_pitch,
+                np.radians(imu.gyro_x)* scale_gyrox,
+                np.radians(imu.gyro_y)* scale_gyroy,
+                np.radians(imu.gyro_z) * scale_gyroz, imu.acc_x*scale_accx, imu.acc_y*scale_accy, (imu.acc_z  - 0.981)*scale_accz
             ]
             # log input data as debug-level message
             rospy.logdebug(imu)
@@ -198,8 +270,12 @@ class SpotCommander():
             Args: mini_cmd
         """
         try:
-            # Update mini_cmd
-            self.mini_cmd = mini_cmd
+            if self.walkstraight == False:
+                # Update mini_cmd
+                self.mini_cmd = mini_cmd
+            else:
+                self.mini_cmd = mini_cmd_straight
+
             # log input data as debug-level message
             rospy.logdebug(mini_cmd)
         except rospy.ROSInterruptException:
@@ -213,21 +289,23 @@ class SpotCommander():
         try:
             # Update jb
             self.jb = jb
+            if jb.updown==1:
+                self.walkstraight = True
+            elif jb.updown==-1:
+                self.walkstraight = False
             # log input data as debug-level message
             rospy.logdebug(jb)
         except rospy.ROSInterruptException:
             pass
 
-    def move(self):
+    def move(self,stored_orientdata=None, imures_storage=None):
         """ Turn joystick inputs into commands
         """
-
         # Move Type
         if self.mini_cmd.movement == "Stepping":
             step_or_view = False
         else:
             step_or_view = True
-
         if self.mini_cmd.motion != "Stop":
             self.StepVelocity = copy.deepcopy(self.BaseStepVelocity)
             self.SwingPeriod = np.clip(
@@ -275,10 +353,6 @@ class SpotCommander():
             pos = np.array([0.0, 0.0, 0.0])
             orn = np.array([0.0, 0.0, 0.0])
 
-        # TODO: integrate into controller
-        self.ClearanceHeight += self.jb.updown * CHPD_SCALE
-        self.PenetrationDepth += self.jb.leftright * CHPD_SCALE
-
         # Manual Reset
         if self.jb.left_bump or self.jb.right_bump:
             self.ClearanceHeight = copy.deepcopy(self.BaseClearanceHeight)
@@ -286,33 +360,55 @@ class SpotCommander():
             self.StepVelocity = copy.deepcopy(self.BaseStepVelocity)
             self.SwingPeriod = copy.deepcopy(self.BaseSwingPeriod)
 
+
+
         # OPTIONAL: Agent
         if self.Agent and self.mini_cmd.motion != "Stop":
             phases = copy.deepcopy(self.bzg.Phases)
             # Total 12
             state = []
-            # r, p, gz, gy, gz, ax, ay, az (8)
-            state.extend(self.imu)
+            # r, p, gz, gy, gz, ax, ay, az (8)  
+            print(" \n roll: ", self.imu[0], "\n",
+            "pitch: ", self.imu[1],"\n",
+            "acc_x: ", self.imu[5],"\n",
+            "acc_y: ", self.imu[6],"\n",
+            "acc_z: ", self.imu[7],"\n",
+            "gyro_x:", self.imu[2],"\n",
+            "gyro_y: ", self.imu[3],"\n",
+            "gyro_z: ", self.imu[4])
+            state.extend(list(np.array(self.imu)))
             # FL, FR, BL, BR (4)
             state.extend(phases)
-            # FL, FR, BL, BR (4)
             if self.enable_contact:
                 state.extend(self.contacts)
             self.normalizer.observe(state)
             # Don't normalize contacts
-            state[:-4] = self.normalizer.normalize(state)[:-4]
-            self.action = self.policy.evaluate(state, None, None)
-            self.action = np.tanh(self.action)
-            # EXP FILTER
-            self.action[:actions_to_filter] = alpha * self.old_act + (
-                1.0 - alpha) * self.action[:actions_to_filter]
-            self.old_act = self.action[:actions_to_filter]
+            if self.Agent=="ARS":
+                self.action = self.policy.evaluate(state, None, None)
+                self.action = np.tanh(self.action)
+                # EXP FILTER
+                self.action[:actions_to_filter] = alpha * self.old_act + (
+                    1.0 - alpha) * self.action[:actions_to_filter]
+                self.old_act = self.action[:actions_to_filter]
+            elif self.Agent=="SAC":
+                starttime = time.time()
+                with torch.no_grad():
+                    self.action = self.agent.policy_net.get_action(state)
+                print("agent took:", time.time() - starttime)
 
+                self.action = np.tanh(self.action)
+                # EXP FILTER
+                self.action[:actions_to_filter] = alpha * self.old_act + (
+                    1.0 - alpha) * self.action[:actions_to_filter]
+                self.old_act = self.action[:actions_to_filter]
+            self.action = self.action*0.5
             self.ClearanceHeight += self.action[0] * CD_SCALE
+            print("agent action:", self.action)
+        
+
 
         # Time
         dt = rospy.get_time() - self.time
-        # print("dt: {}".format(dt))
         self.time = rospy.get_time()
 
         # Update Step Period
@@ -366,19 +462,18 @@ class SpotCommander():
 
         # Move Type
         ja_msg.step_or_view = step_or_view
-
         self.ja_pub.publish(ja_msg)
 
 
-def main():
+def main():    
     """ The main() function. """
     mini_commander = SpotCommander()
-    rate = rospy.Rate(600.0)
+    rate = rospy.Rate(30.0)
+
     while not rospy.is_shutdown():
         # This is called continuously. Has timeout functionality too
         mini_commander.move()
         rate.sleep()
-        # rospy.spin()
 
 
 if __name__ == '__main__':

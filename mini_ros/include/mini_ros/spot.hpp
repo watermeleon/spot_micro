@@ -1,7 +1,7 @@
 #ifndef SPOT_INCLUDE_GUARD_HPP
 #define SPOT_INCLUDE_GUARD_HPP
 /// \file
-/// \brief Spots library which contains control functionality for Spot Mini Mini.
+/// \brief Spots library which contains high-level control functionality for the Spot Mini Mini.
 #include <vector>
 #include <ros/ros.h>
 
@@ -37,7 +37,7 @@ namespace spot
     struct SpotCommand
     {
         Motion motion = Stop;
-        Movement movement = Viewing;
+        Movement movement = Stepping;
         double x_velocity = 0.0;
         double y_velocity = 0.0;
         double rate = 0.0;

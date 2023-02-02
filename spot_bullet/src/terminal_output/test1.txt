@@ -1,0 +1,11 @@
+../../spotmicro/util/pybullet_data
+STARTING SPOT TRAINING ENV
+[6, 11, 16, 21]
+TERRAIN SHAPE: 0
+TERRAIN SHAPE: 1
+Action SPACE: Box([-1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1.], [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.], (14,), float32)
+STATE DIM: 12
+ACTION DIM: 14
+STARTED SPOT TRAINING ENV
+argv[0]=
+argv[0]=

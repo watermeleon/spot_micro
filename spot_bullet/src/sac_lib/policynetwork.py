@@ -15,9 +15,12 @@ class PolicyNetwork(nn.Module):
                  hidden_size,
                  init_w=3e-3,
                  log_std_min=-20,
-                 log_std_max=2):
+                 log_std_max=2,
+                 episode_steps = 5000):
         super(PolicyNetwork, self).__init__()
 
+        self.episode_steps = episode_steps
+        
         self.log_std_min = log_std_min
         self.log_std_max = log_std_max
 
@@ -33,8 +36,7 @@ class PolicyNetwork(nn.Module):
 
         self.log_std_linear2.weight.data.uniform_(-init_w, init_w)
         self.log_std_linear2.bias.data.uniform_(-init_w, init_w)
-        # self.log_std_linear.weight.data.zero_()
-        # self.log_std_linear.bias.data.zero_()
+
 
     def forward(self, state):
         x = F.relu(self.linear1(state))

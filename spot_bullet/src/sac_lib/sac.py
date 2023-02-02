@@ -19,9 +19,12 @@ class SoftActorCritic(object):
                  hidden_dim=256,
                  soft_q_lr=3e-3,
                  policy_lr=3e-3,
+                 ent_coef_lr=3e-3,
+                 ent_coef_start = 0.1,
                  device=torch.device(
                      "cuda:0" if torch.cuda.is_available() else "cpu")):
         self.device = device
+
         # set up the networks
         self.policy_net = policy.to(device)
         self.soft_q_net = SoftQNetwork(state_dim, action_dim,
@@ -31,8 +34,7 @@ class SoftActorCritic(object):
 
         # ent coeff
         self.target_entropy = -action_dim
-        self.log_ent_coef = torch.FloatTensor(np.log(np.array([.1
-                                                               ]))).to(device)
+        self.log_ent_coef = torch.FloatTensor(np.log(np.array([ent_coef_start]))).to(device)
         self.log_ent_coef.requires_grad = True
 
         # copy the target params over
@@ -44,11 +46,9 @@ class SoftActorCritic(object):
         self.soft_q_criterion = nn.MSELoss()
 
         # set the optimizers
-        self.soft_q_optimizer = optim.Adam(self.soft_q_net.parameters(),
-                                           lr=soft_q_lr)
-        self.policy_optimizer = optim.Adam(self.policy_net.parameters(),
-                                           lr=policy_lr)
-        self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr=3e-3)
+        self.soft_q_optimizer = optim.Adam(self.soft_q_net.parameters(), lr=soft_q_lr)
+        self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=policy_lr)
+        self.ent_coef_optimizer = optim.Adam([self.log_ent_coef], lr=ent_coef_lr)
 
         # reference the replay buffer
         self.replay_buffer = replay_buffer
@@ -72,7 +72,7 @@ class SoftActorCritic(object):
         target_q1_value, target_q2_value = self.target_soft_q_net(
             next_state, new_action)
         target_value = reward + (1 - done) * gamma * (
-            torch.min(target_q2_value, target_q2_value) - ent_coef * log_prob)
+            torch.min(target_q1_value, target_q2_value) - ent_coef * log_prob)
 
         expected_q1_value, expected_q2_value = self.soft_q_net(state, action)
 
@@ -127,9 +127,3 @@ class SoftActorCritic(object):
         self.policy_optimizer.load_state_dict(
             torch.load(filename + "_policy_optimizer",
                        map_location=self.device))
-        # self.soft_q_net.load_state_dict(
-        #     torch.load(filename + "_soft_q_net", map_location=self.device))
-        # self.soft_q_optimizer.load_state_dict(
-        #     torch.load(filename + "_soft_q_optimizer",
-        #                map_location=self.device))
-        # self.target_soft_q_net = copy.deepcopy(self.soft_q_net)

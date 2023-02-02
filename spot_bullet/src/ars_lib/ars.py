@@ -9,7 +9,7 @@ from spotmicro.Kinematics.LieAlgebra import TransToRp
 import copy
 from spotmicro.util.gui import GUI
 
-np.random.seed(0)
+# np.random.seed(0)
 
 # Multiprocessing package for python
 # Parallelization improvements based on:
@@ -154,6 +154,8 @@ def ParallelWorker(childPipe, env, nb_states):
 
                 ClearanceHeight += action[0] * CD_SCALE
 
+
+                # this is TRAIN PARALLEL
                 # CLIP EVERYTHING
                 StepLength = np.clip(StepLength, smach.StepLength_LIMITS[0],
                                      smach.StepLength_LIMITS[1])
@@ -203,6 +205,7 @@ def ParallelWorker(childPipe, env, nb_states):
                 joint_angles = spot.IK(orn, pos, T_bf_copy)
                 # Pass Joint Angles
                 env.pass_joint_angles(joint_angles.reshape(-1))
+                
                 # Perform action
                 next_state, reward, done, _ = env.step(action)
                 sum_rewards += reward
@@ -381,40 +384,15 @@ class ARSAgent():
         self.action_history = []
         self.true_action_history = []
 
-    # Deploy Policy in one direction over one whole episode
-    # DO THIS ONCE PER ROLLOUT OR DURING DEPLOYMENT
-    def deploy(self, direction=None, delta=None):
-        state = self.env.reset(self.desired_velocity, self.desired_rate)
-        sum_rewards = 0.0
-        timesteps = 0
-        done = False
-        while not done and timesteps < self.policy.episode_steps:
-            # print("STATE: ", state)
-            # print("dt: {}".format(timesteps))
-            self.normalizer.observe(state)
-            # Normalize State
-            state = self.normalizer.normalize(state)
-            action = self.policy.evaluate(state, delta, direction)
-            # Clip action between +-1 for execution in env
-            for a in range(len(action)):
-                action[a] = np.clip(action[a], -self.max_action,
-                                    self.max_action)
-            # print("ACTION: ", action)
-            state, reward, done, _ = self.env.step(action)
-            # print("STATE: ", state)
-            # Clip reward between -1 and 1 to prevent outliers from
-            # distorting weights
-            reward = np.clip(reward, -self.max_action, self.max_action)
-            sum_rewards += reward
-            timesteps += 1
-            # Divide rewards by timesteps for reward-per-step + exp survive rwd
-        return (sum_rewards + timesteps**cum_dt_exp) / timesteps
 
     # Deploy Policy in one direction over one whole episode
     # DO THIS ONCE PER ROLLOUT OR DURING DEPLOYMENT
     def deployTG(self, direction=None, delta=None):
+
         state = self.env.reset()
         sum_rewards = 0.0
+        rewards_compare = []
+
         timesteps = 0
         done = False
         # alpha = []
@@ -485,6 +463,7 @@ class ARSAgent():
                                        self.smach.PenetrationDepth_LIMITS[0],
                                        self.smach.PenetrationDepth_LIMITS[1])
 
+            # LE: so it gets the last 4 state parts, but if contacts = False, these are the self.LegPhases
             contacts = copy.deepcopy(state[-4:])
             # contacts = [0, 0, 0, 0]
 
@@ -524,56 +503,24 @@ class ARSAgent():
 
             # Perform action
             next_state, reward, done, _ = self.env.step(action)
+
+            if timesteps > 20:
+                rewards_compare.append(reward)
+
             sum_rewards += reward
             timesteps += 1
+
 
         self.TGP.reset()
         self.smach.reshuffle()
         self.smach.PenetrationDepth = self.BasePenetrationDepth
         self.smach.ClearanceHeight = self.BaseClearanceHeight
-        return sum_rewards, timesteps
+        return sum_rewards, timesteps, np.mean(np.array(rewards_compare))
 
     def returnPose(self):
         return self.env.spot.GetBasePosition()
 
-    def train(self):
-        # Sample random expl_noise deltas
-        print("-------------------------------")
-        # print("Sampling Deltas")
-        deltas = self.policy.sample_deltas()
-        # Initialize +- reward list of size num_deltas
-        positive_rewards = [0] * self.policy.num_deltas
-        negative_rewards = [0] * self.policy.num_deltas
 
-        # Execute 2*num_deltas rollouts and store +- rewards
-        print("Deploying Rollouts")
-        for i in range(self.policy.num_deltas):
-            print("Rollout #{}".format(i + 1))
-            positive_rewards[i] = self.deploy(direction="+", delta=deltas[i])
-            negative_rewards[i] = self.deploy(direction="-", delta=deltas[i])
-
-        # Calculate std dev
-        std_dev_rewards = np.array(positive_rewards + negative_rewards).std()
-
-        # Order rollouts in decreasing list using cum reward as criterion
-        unsorted_rollouts = [(positive_rewards[i], negative_rewards[i],
-                              deltas[i])
-                             for i in range(self.policy.num_deltas)]
-        # When sorting, take the max between the reward for +- disturbance
-        sorted_rollouts = sorted(
-            unsorted_rollouts,
-            key=lambda x: max(unsorted_rollouts[0], unsorted_rollouts[1]),
-            reverse=True)
-
-        # Only take first best_num_deltas rollouts
-        rollouts = sorted_rollouts[:self.policy.num_best_deltas]
-
-        # Update Policy
-        self.policy.update(rollouts, std_dev_rewards)
-
-        # Execute Current Policy
-        eval_reward = self.deploy()
-        return eval_reward
 
     def train_parallel(self, parentPipes):
         """ Execute rollouts in parallel using multiprocessing library
@@ -673,5 +620,6 @@ class ARSAgent():
 
         :param filename: the name of the file where the policy is saved
         """
+        print("name in ars", filename)
         with open(filename + '_policy', 'rb') as filehandle:
-            self.policy.theta = pickle.load(filehandle)
+            self.policy.theta = pickle.load(filehandle, encoding="bytes")

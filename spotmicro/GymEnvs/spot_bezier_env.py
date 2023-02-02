@@ -83,7 +83,9 @@ class spotBezierEnv(spotGymEnv):
                  height_field=False,
                  AutoStepper=True,
                  action_dim=14,
-                 contacts=True):
+                 contacts=True,
+                 mod_rew=False
+                 ):
 
         super(spotBezierEnv, self).__init__(
             distance_weight=distance_weight,
@@ -133,7 +135,7 @@ class spotBezierEnv(spotGymEnv):
         print("Action SPACE: {}".format(self.action_space))
 
         self.prev_pos = np.array([0.0, 0.0, 0.0])
-
+        self.mod_rew = mod_rew
         self.yaw = 0.0
 
     def pass_joint_angles(self, ja):
@@ -221,17 +223,23 @@ class spotBezierEnv(spotGymEnv):
 
         forward_reward = pos[0] - self.prev_pos[0]
 
+        if self.mod_rew:
+            self.prev_pos  = pos
+            
+        # print("forw_rew:", forward_reward, "pos, prevpos",  pos[0], self.prev_pos[0])
+        # print("forw_rew:", forward_reward * self._distance_weight, forward_reward)
+
         # yaw_rate = obs[4]
 
         rot_reward = 0.0
 
         roll, pitch, yaw = self._pybullet_client.getEulerFromQuaternion(
             [orn[0], orn[1], orn[2], orn[3]])
-
-        # if yaw < 0.0:
-        #     yaw += np.pi
-        # else:
-        #     yaw -= np.pi
+            
+        if yaw < 0.0:
+            yaw += np.pi
+        else:
+            yaw -= np.pi
 
         # For auto correct
         self.yaw = yaw
@@ -239,7 +247,7 @@ class spotBezierEnv(spotGymEnv):
         # penalty for nonzero PITCH and YAW(hidden) ONLY
         # NOTE: Added Yaw mult
         rp_reward = -(abs(obs[0]) + abs(obs[1]))
-
+        # print("rp rew",self._rp_weight * rp_reward, rp_reward )
         # print("YAW: {}".format(yaw))
         # print("RP RWD: {:.2f}".format(rp_reward))
         # print("ROLL: {} \t PITCH: {}".format(obs[0], obs[1]))
@@ -249,7 +257,7 @@ class spotBezierEnv(spotGymEnv):
 
         # penalty for nonzero rate (x,y,z)
         rate_reward = -(abs(obs[2]) + abs(obs[3]))
-
+        # print("rate reward",  rate_reward* self._rate_weight,  rate_reward)
         # print("RATES: {}".format(obs[2:5]))
 
         drift_reward = -abs(pos[1])
@@ -263,6 +271,7 @@ class spotBezierEnv(spotGymEnv):
                   self._shake_weight * shake_reward +
                   self._rp_weight * rp_reward +
                   self._rate_weight * rate_reward)
+        # print("reward is", reward)
         self._objectives.append(
             [forward_reward, energy_reward, drift_reward, shake_reward])
         # print("REWARD: ", reward)

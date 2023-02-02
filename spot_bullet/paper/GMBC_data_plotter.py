@@ -15,57 +15,34 @@ sns.set()
 # ARGUMENTS
 descr = "Spot Mini Mini ARS Agent Evaluator."
 parser = argparse.ArgumentParser(description=descr)
-parser.add_argument("-nep",
-                    "--NumberOfEpisodes",
-                    help="Number of Episodes to Plot Data For")
-parser.add_argument("-maw",
-                    "--MovingAverageWindow",
+parser.add_argument("-nep","--NumberOfEpisodes", type=int, default=1000, 
+                     help="Number of Episodes to Plot Data For")
+parser.add_argument("-maw", "--MovingAverageWindow",  type=int, default=50,
                     help="Moving Average Window for Plotting (Default: 50)")
-parser.add_argument("-surv",
-                    "--Survival",
-                    help="Plot Survival Curve",
-                    action='store_true')
-parser.add_argument("-tr",
-                    "--TrainingData",
-                    help="Plot Training Curve",
-                    action='store_true')
-parser.add_argument("-tot",
-                    "--TotalReward",
-                    help="Show Total Reward instead of Reward Per Timestep",
-                    action='store_true')
-parser.add_argument("-ar",
-                    "--RandAgentNum",
+parser.add_argument("-surv","--Survival",
+                    help="Plot Survival Curve", action='store_true')
+parser.add_argument("-tr", "--TrainingData",
+                    help="Plot Training Curve", action='store_true')
+parser.add_argument("-tot", "--TotalReward",
+                    help="Show Total Reward instead of Reward Per Timestep", action='store_true')
+parser.add_argument("-ar","--RandAgentNum",
                     help="Randomized Agent Number To Load")
-parser.add_argument("-anor",
-                    "--NoRandAgentNum",
+parser.add_argument("-anor", "--NoRandAgentNum",
                     help="Non-Randomized Agent Number To Load")
-parser.add_argument("-raw",
-                    "--Raw",
-                    help="Plot Raw Data in addition to Moving Averaged Data",
-                    action='store_true')
-parser.add_argument(
-    "-s",
-    "--Seed",
-    help="Seed [UP TO, e.g. 0 | 0, 1 | 0, 1, 2 ...] (Default: 0).")
-parser.add_argument("-pout",
-                    "--PolicyOut",
-                    help="Plot Policy Output Data",
-                    action='store_true')
-parser.add_argument("-rough",
-                    "--Rough",
-                    help="Plot Policy Output Data for Rough Terrain",
-                    action='store_true')
-parser.add_argument(
-    "-tru",
-    "--TrueAct",
-    help="Plot the Agent Action instead of what the robot sees",
-    action='store_true')
+parser.add_argument("-raw", "--Raw",
+                    help="Plot Raw Data in addition to Moving Averaged Data",action='store_true')
+parser.add_argument("-s", "--Seed",  type=int, default=0, 
+                    help="Seed [UP TO, e.g. 0 | 0, 1 | 0, 1, 2 ...] (Default: 0).")
+parser.add_argument("-pout", "--PolicyOut",
+                    help="Plot Policy Output Data", action='store_true')
+parser.add_argument("-rough", "--Rough",
+                    help="Plot Policy Output Data for Rough Terrain", action='store_true')
+parser.add_argument("-tru", "--TrueAct",
+                    help="Plot the Agent Action instead of what the robot sees", action='store_true')
+
 ARGS = parser.parse_args()
 
-MA_WINDOW = 50
-if ARGS.MovingAverageWindow:
-    MA_WINDOW = int(ARGS.MovingAverageWindow)
-
+MA_WINDOW = ARGS.MovingAverageWindow
 
 def moving_average(a, n=MA_WINDOW):
     MA = np.cumsum(a, dtype=float)
@@ -111,9 +88,10 @@ def main():
     """ The main() function. """
     file_name = "spot_ars_"
 
-    seed = 0
-    if ARGS.Seed:
-        seed = ARGS.Seed
+    seed = ARGS.Seed
+    nep = ARGS.NumberOfEpisodes
+    training = ARGS.TrainingData
+    surv = ARGS.Survival
 
     # Find abs path to this file
     my_path = os.path.abspath(os.path.dirname(__file__))
@@ -125,18 +103,6 @@ def main():
     vanilla_surv = np.random.randn(1000)
     agent_surv = np.random.randn(1000)
 
-    nep = 1000
-
-    if ARGS.NumberOfEpisodes:
-        nep = ARGS.NumberOfEpisodes
-    if ARGS.TrainingData:
-        training = True
-    else:
-        training = False
-    if ARGS.Survival:
-        surv = True
-    else:
-        surv = False
     if ARGS.PolicyOut or ARGS.Rough or ARGS.TrueAct:
         pout = True
     else:
@@ -154,7 +120,6 @@ def main():
         norand_agt = ARGS.NoRandAgentNum
 
     if surv:
-
         # Vanilla Data
         if os.path.exists(results_path + "/" + file_name + "vanilla" +
                           '_survival_{}'.format(nep)):

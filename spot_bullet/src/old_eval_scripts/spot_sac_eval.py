@@ -2,13 +2,15 @@
 
 import numpy as np
 
-from sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
+import sys
+sys.path.append('../../')
+
 import copy
 from gym import spaces
 
-import sys
+from spot_bullet.src.sac_lib import SoftActorCritic, NormalizedActions, ReplayBuffer, PolicyNetwork
 
-sys.path.append('../../')
+
 
 from spotmicro.GymEnvs.spot_bezier_env import spotBezierEnv
 from spotmicro.Kinematics.SpotKinematics import SpotModel
@@ -77,7 +79,7 @@ def main():
                           action_dim=action_dim,
                           replay_buffer=replay_buffer)
 
-    policy_num = raw_input("Policy Number: ")
+    policy_num = input("Policy Number: ")
     if os.path.exists(models_path + "/" + file_name + str(policy_num) +
                       "_policy_net"):
         print("Loading Existing Policy")

@@ -8,6 +8,14 @@ from collections import OrderedDict
 
 class SpotModel:
     def __init__(self,
+                #  shoulder_length=0.04,
+                #  elbow_length=0.1,
+                #  wrist_length=0.1,
+                #  hip_x=0.192,
+                #  hip_y=0.085,
+                #  foot_x=0.192,
+                #  foot_y=0.17,
+                #  height=0.135,
                  shoulder_length=0.055,
                  elbow_length=0.10652,
                  wrist_length=0.145,
@@ -15,7 +23,9 @@ class SpotModel:
                  hip_y=0.075,
                  foot_x=0.23,
                  foot_y=0.185,
+                #  height=0.18,
                  height=0.20,
+
                  com_offset=0.016,
                  shoulder_lim=[-0.548, 0.548],
                  elbow_lim=[-2.17, 0.97],
@@ -184,11 +194,9 @@ class SpotModel:
 
         # Modify x by com offset
         pos[0] += self.com_offset
-
+        
         # 4 legs, 3 joints per leg
         joint_angles = np.zeros((4, 3))
-
-        # print("T_bf: {}".format(T_bf))
 
         # Steps 1 and 2 of pipeline here
         HipToFoot = self.HipToFoot(orn, pos, T_bf)
