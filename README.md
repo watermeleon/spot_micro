@@ -4,7 +4,7 @@ This is a fork of the [OpenQuadruped](https://github.com/OpenQuadruped/spot_mini
 <img src="docs/JakeSide_contrast.jpg" alt="schematic" width="500"/>
 
 
-Important changes are:
+## Important changes are:
 - The the use of the original yellow SpotMicroAI configuration, with the improved motor parameters from OpenQuadruped.
 - The Soft Actor-Critic (SAC) agent implementation is removed of bugs and put in the same training and test setup as the ARS agent.  
 - The real robot is now integrated with the MPU5060 IMU. Data is collected through Ros.
