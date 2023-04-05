@@ -13,6 +13,6 @@ Important changes are:
 
 Furthere code explanation and clean up will follow
 
-For more information visit my website: TODO
+For more information visit my website: https://watermeleon.github.io/projects/SpotMicroAI/
 # The electronical schematic:
 <img src="docs/spotmicro_schem.jpg" alt="schematic" width="500"/>
